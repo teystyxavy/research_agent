@@ -2,16 +2,16 @@ import os
 import streamlit as st
 from langchain_core.messages import HumanMessage
 from agent.graph import agent_graph
+from agent.config import REPORTS_DIR, THREAD_ID
 
 st.set_page_config(page_title="Research Agent", page_icon="🔍", layout="wide")
 st.title("🔍 Agentic Research Assistant")
-st.caption("Powered by LangGraph · ReAct pattern · Multi-tool autonomous agent")
+st.caption("Powered by LangGraph · Gemini 2.0 Flash · Multi-tool autonomous agent")
 
 # Sidebar — config
 with st.sidebar:
     st.header("Agent Config")
-    model_name = st.selectbox("LLM", ["gpt-4o", "gpt-4-turbo"])
-    max_iter = st.slider("Max iterations", 3, 12, 6)
+    st.caption("Configure via `.env` — see `agent/config.py`")
     st.divider()
     st.markdown("**Tools available:**")
     st.markdown("- 🔍 Web search (Tavily)")
@@ -33,8 +33,8 @@ with col1:
     run_button = st.button("Run Agent ▶", type="primary", use_container_width=True)
 
 if run_button and topic:
-    os.makedirs("./reports", exist_ok=True)
-    thread_config = {"configurable": {"thread_id": "research-session-1"}}
+    os.makedirs(REPORTS_DIR, exist_ok=True)
+    thread_config = {"configurable": {"thread_id": THREAD_ID}}
 
     # Stream the agent's execution step by step
     with st.spinner("Agent is researching..."):

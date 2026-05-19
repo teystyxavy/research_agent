@@ -1,17 +1,20 @@
 from datetime import datetime
 from typing import Literal
-from langchain_google_genai import ChatGoogleGenerativeAI
+from langchain_groq import ChatGroq
 from langchain_core.messages import SystemMessage
 from langgraph.graph import StateGraph, START, END
 from langgraph.prebuilt import ToolNode
 from langgraph.checkpoint.memory import MemorySaver
+from langchain_core.rate_limiters import InMemoryRateLimiter
+
 
 from .config import LLM_MODEL, LLM_TEMPERATURE, MAX_ITERATIONS
 from .state import AgentState
 from .tools import TOOLS
 from .prompts import RESEARCH_AGENT_PROMPT
 
-llm = ChatGoogleGenerativeAI(model=LLM_MODEL, temperature=LLM_TEMPERATURE)
+rate_limiter = InMemoryRateLimiter(requests_per_second=0.5)
+llm = ChatGroq(model=LLM_MODEL, temperature=LLM_TEMPERATURE, rate_limiter=rate_limiter)
 llm_with_tools = llm.bind_tools(TOOLS)
 _tool_node = ToolNode(TOOLS)
 

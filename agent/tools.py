@@ -2,10 +2,13 @@ import os
 from langchain_core.tools import tool
 from langchain_community.tools.tavily_search import TavilySearchResults
 from datetime import datetime
+from .rag import RAGAgent
 
-from .config import TAVILY_MAX_RESULTS, REPORTS_DIR
+from .config import CHROMA_PERSIST_DIR, EMBEDDING_MODEL, TAVILY_MAX_RESULTS, SEARCH_RESULT_MAX_CHARS, REPORTS_DIR, RAG_K, CHUNK_SIZE, CHUNK_OVERLAP, KNOWLEDGE_BASE_NAME
 
 search_tool = TavilySearchResults(max_results=TAVILY_MAX_RESULTS)
+rag = RAGAgent(model=EMBEDDING_MODEL, name=KNOWLEDGE_BASE_NAME, persist_dir=CHROMA_PERSIST_DIR,
+               chunk_size=CHUNK_SIZE, chunk_overlap=CHUNK_OVERLAP)
 
 @tool
 def web_search(query: str) -> str:
@@ -13,7 +16,8 @@ def web_search(query: str) -> str:
     results = search_tool.invoke(query)
     formatted = []
     for r in results:
-        formatted.append(f"Source: {r['url']}\n{r['content']}\n")
+        content = r['content'][:SEARCH_RESULT_MAX_CHARS]
+        formatted.append(f"Source: {r['url']}\n{content}\n")
     return "\n---\n".join(formatted)
 
 @tool
@@ -36,6 +40,18 @@ def calculate(expression: str) -> str:
         return str(result)
     except Exception as e:
         return f"Error: {e}"
+    
+@tool
+def retrieve_from_knowledge_base(query: str) ->  str:
+    """ Searches private knowledge base for relevant documents"""
+    results = rag.retrieve(query, k=RAG_K)
+    if not results:
+        return "No relevant information found in knowledge base."
+    formatted = []
+    for doc, score in results:
+        source = doc.metadata.get("source", "unknown")
+        formatted.append(f"Source: {source} (score: {score:.2f})\n{doc.page_content}")
+    return "\n---\n".join(formatted)
 
 # Register all tools the agent can call
-TOOLS = [web_search, save_report, calculate]
+TOOLS = [web_search, save_report, calculate, retrieve_from_knowledge_base]

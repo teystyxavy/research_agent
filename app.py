@@ -3,6 +3,7 @@ import streamlit as st
 from langchain_core.messages import HumanMessage
 from agent.graph import agent_graph
 from agent.config import REPORTS_DIR, THREAD_ID
+from agent.tools import rag
 
 st.set_page_config(page_title="Research Agent", page_icon="🔍", layout="wide")
 st.title("🔍 Agentic Research Assistant")
@@ -18,6 +19,17 @@ with st.sidebar:
     st.markdown("- 💾 Save report")
     st.markdown("- 🧮 Calculator")
     st.divider()
+    files = st.file_uploader("Upload documents to knowledge base", type=["txt", "pdf", "md"], accept_multiple_files=True)
+    if files:
+        if "ingested_files" not in st.session_state:
+            st.session_state.ingested_files = set()
+        new_files = [f for f in files if f.name not in st.session_state.ingested_files]
+        if new_files:
+            with st.spinner(f"Ingesting {len(new_files)} file(s)..."):
+                for f in new_files:
+                    rag.add_document(f.read(), source=f.name)
+                    st.session_state.ingested_files.add(f.name)
+            st.success(f"Added {len(new_files)} file(s) to knowledge base.")
     if st.button("Clear session"):
         st.session_state.clear()
         st.rerun()
